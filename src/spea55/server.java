@@ -1,21 +1,44 @@
 package spea55;
 
-import java.io.IOException;
-import java.net.ServerSocket;
+import java.net.*;
+import java.io.*;
 
 public class server {
 
-    private static int PORT = 10000;
+    private static final int PORT = 10000;
+    private static final char END = '.';
 
     public static void main(String[] args) {
-        try{
-            //serverSocket
-            ServerSocket serverSocket = new ServerSocket(PORT);
 
+        server sv = new server();
+        try {
+            ServerSocket ss_server = new ServerSocket(PORT);
+            Socket socket = ss_server.accept();
 
+            Reader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            Writer out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
 
-        }catch (IOException ioe){
-            System.out.println("エラーが発生しました");
+            int c;
+            StringBuilder sb = new StringBuilder(1024);
+            String getMSG;
+            while ((c = in.read()) != -1){
+                if(c == END)break;
+                sb.append((char)c);
+            }
+
+            getMSG = sb.toString();
+
+            out.write(getMSG.toUpperCase());
+            out.flush();
+            System.out.println("receive:" + getMSG);
+
+            socket.close();
+            ss_server.close();
+
+            System.exit(0);
+        }catch (IOException err) {
+            err.printStackTrace();
         }
     }
 }
+
