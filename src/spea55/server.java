@@ -12,7 +12,7 @@ public class server {
             //serverSocket
             ServerSocket serverSocket = new ServerSocket(PORT);
 
-            
+
 
         }catch (IOException ioe){
             System.out.println("エラーが発生しました");
