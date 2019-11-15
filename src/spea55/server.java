@@ -1,44 +1,80 @@
 package spea55;
-
 import java.net.*;
 import java.io.*;
 
-public class server {
+class TCP_server{
 
-    private static final int PORT = 10000;
-    private static final char END = '.';
+    void RunServer() {
 
-    public static void main(String[] args) {
-
-        server sv = new server();
+        final int PORT = 10000;
+        BufferedReader reader = null;
+        PrintWriter writer = null;
+        Socket socket = null;
+        ServerSocket ss_server = null;
         try {
-            ServerSocket ss_server = new ServerSocket(PORT);
-            Socket socket = ss_server.accept();
+            ss_server = new ServerSocket();
+            ss_server.bind(new InetSocketAddress("localhost", PORT));
 
-            Reader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            Writer out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+            System.out.println("クライアントからの入力待ち状態");
+            //クライアントからの要求を待ち続ける
+            socket = ss_server.accept();
 
-            int c;
-            StringBuilder sb = new StringBuilder(1024);
-            String getMSG;
-            while ((c = in.read()) != -1){
-                if(c == END)break;
-                sb.append((char)c);
+            //クライアントからの受取用
+            reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            //サーバーからクライアントへの送信用
+            writer = new PrintWriter(socket.getOutputStream(), true);
+
+            String line = null;
+            int num;
+            while (true) {
+                line = reader.readLine();
+                if (line.equals("bye")) {
+                    break;
+                }
+
+                try{
+                    num = Integer.parseInt(line);
+                    if (num%2==0) {
+                        //送信用の文字を送信
+                        writer.println("OK");
+                    }else {
+                        //送信用の文字を送信
+                        writer.println("NG");
+                    }
+
+                }catch (NumberFormatException nfe){
+                        //送信用の文字を送信
+                    writer.println("数値を入力してください");
+                }
+                System.out.println("クライアントで入力された文字" + line);
             }
 
-            getMSG = sb.toString();
-
-            out.write(getMSG.toUpperCase());
-            out.flush();
-            System.out.println("receive:" + getMSG);
-
-            socket.close();
-            ss_server.close();
-
-            System.exit(0);
-        }catch (IOException err) {
+        } catch (Exception err) {
             err.printStackTrace();
+        }finally {
+            try{
+                if (reader!=null){
+                    reader.close();
+                }
+                if (writer!=null) {
+                    writer.close();
+                }
+                if(socket!=null){
+                    socket.close();
+                }
+                if(ss_server!=null){
+                    ss_server.close();
+                }
+            }catch (IOException error){
+                error.printStackTrace();
+            }
         }
+    }
+}
+public class server {
+    public static void main(String[] args) {
+        TCP_server ts1 = new TCP_server();
+        ts1.RunServer();
     }
 }
 

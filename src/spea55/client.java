@@ -3,37 +3,67 @@ package spea55;
 import java.io.*;
 import java.net.Socket;
 
+class TCP_client{
+     void RunClient(){
+         final int PORT = 10000;
+         BufferedReader csInput = null;
+         BufferedReader reader = null;
+         PrintWriter writer = null;
+         Socket socket = null;
+         try{
+             socket = new Socket("localhost", PORT);
+             //サーバ側からの受取
+             reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+             //クライアント側からサーバーへの送信用
+             writer = new PrintWriter(socket.getOutputStream(), true);
+             //クライアント側での入力用
+             csInput = new BufferedReader(new InputStreamReader(System.in));
+
+             //無限ループ　byeの入力でループを抜ける
+             String line = null;
+             while(true) {
+                 System.out.println("----------------------");
+                 System.out.println("偶数を入力してください");
+                 System.out.println("----------------------");
+
+                 line = csInput.readLine();
+
+                 //送信用の文字を送信
+                 writer.println(line);
+
+                 //byeの入力でループを抜ける
+                 if (line.equals("bye")) {
+                     break;
+                 }
+
+                 //サーバ側からの受取の結果を表示
+                 System.out.println("サーバーからの回答：" + reader.readLine());
+             }
+         } catch(Exception e){
+             e.printStackTrace();
+         }finally {
+             try{
+                 if(reader != null){
+                     reader.close();
+                 }
+                 if(writer != null){
+                     writer.close();
+                 }
+                 if(socket != null){
+                     socket.close();
+                 }
+                 if(csInput != null){
+                     csInput.close();
+                 }
+             }catch (IOException ioe){}
+         }
+         System.out.println("クライアント側終了です");
+     }
+}
+
 class client {
-
-    static final int PORT = 10000;
-
     public static void main(String[] args) {
-
-        try(Socket sc = new Socket("local", PORT)){
-
-            BufferedReader in = new BufferedReader(new InputStreamReader(sc.getInputStream()));
-            BufferedWriter out = new BufferedWriter(new OutputStreamWriter(sc.getOutputStream()));
-
-            String receive = "";
-
-            String sendMSG = args[0];
-            out.write(sendMSG);
-            out.write('.');
-            out.flush();
-
-            System.out.println("receive->");
-            char[] buf = new char[1024];
-            while (in.read(buf) != -1){
-                System.out.println(buf);
-            }
-            System.out.println("\n");
-
-            sc.close();
-
-            System.exit(0);
-
-        } catch(IOException ioe){
-            ioe.printStackTrace();
-        }
+        TCP_client tc1 = new TCP_client();
+        tc1.RunClient();
     }
 }
