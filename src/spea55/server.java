@@ -50,9 +50,9 @@ class TCP_server{
 
                 }catch (NumberFormatException nfe){
                         //送信用の文字を送信
-                    writer.println("数値を入力してください");
+                    writer.println("数値を入力してください：");
                 }
-                System.out.println("クライアントで入力された文字" + line);
+                System.out.println("クライアントで入力された文字：" + line);
             }
 
         } catch (Exception err) {
