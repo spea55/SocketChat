@@ -71,8 +71,8 @@ class TCP_server{
                 if(ss_server!=null){
                     ss_server.close();
                 }
-            }catch (IOException error){
-                error.printStackTrace();
+            }catch (IOException ioe){
+                ioe.printStackTrace();
             }
         }
     }

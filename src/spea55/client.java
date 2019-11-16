@@ -15,10 +15,15 @@ class TCP_client{
          Socket socket = null;
          try{
              socket = new Socket("localhost", PORT);
+
+
+
              //サーバ側からの受取
              reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
              //クライアント側からサーバーへの送信用
              writer = new PrintWriter(socket.getOutputStream(), true);
+
              //クライアント側での入力用
              csInput = new BufferedReader(new InputStreamReader(System.in));
 
@@ -58,7 +63,9 @@ class TCP_client{
                  if(csInput != null){
                      csInput.close();
                  }
-             }catch (IOException ioe){}
+             }catch (IOException ioe){
+                 ioe.printStackTrace();
+             }
          }
          System.out.println("クライアント側終了です");
      }
