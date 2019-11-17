@@ -1,116 +1,46 @@
 package spea55;
 
-import javafx.scene.media.AudioClip;
-
 import java.io.*;
 import java.net.Socket;
 import java.net.ServerSocket;
 import java.net.InetSocketAddress;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
 
-class TCP_server {
+class MusicPlayer {
 
     private String links = "C:/Users/626ca/IdeaProjects/SocketChat/src/spea55/links.txt";
+    private BlockingQueue<String> music_queue;
 
     void RunServer() {
 
         final int PORT = 10000;
-        BufferedReader reader = null;
-        PrintWriter writer = null;
-        Socket socket = null;
-        ServerSocket ss_server = null;
-
+        ServerSocket ss_server;
+        
         try {
+            new Thread(this::PlayMusic_Loop).run();
+
             ss_server = new ServerSocket();
             ss_server.bind(new InetSocketAddress("localhost", PORT));
 
             System.out.println("クライアントからの入力待ち状態");
             //クライアントからの要求を待ち続ける
-            socket = ss_server.accept();
-
-            //クライアントからの受取用
-            reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            //サーバーからクライアントへの送信用
-            writer = new PrintWriter(socket.getOutputStream(), true);
-
-            String line = null;
-            int num;
-            while (true) {
-                line = reader.readLine();
-                if (line.equals("/bye")) {
-                    break;
-                }
-
-                if (line.startsWith("/play")) {
-                    String url = line.split(" ")[1];
-                    System.out.println(url);
-
+            while (true){
+                new Thread(() -> {
                     try {
-                        if (!Files.exists(Paths.get(links))) {
-                            Files.createFile(Paths.get(links));
-                        }
-
-                        String path = getPath(url);
-
-                        if (path != null) {
-                            //play music
-                            AudioClip audioClip = new AudioClip(new File(path.split("\\.")[0] + ".mp3")
-                                    .toURI().toString());
-                            audioClip.setCycleCount(1);
-                            audioClip.play();
-                            Thread.sleep(3000);
-                        } else {
-                            //download music
-                            Runtime runtime = Runtime.getRuntime();
-                            Process p = runtime.exec("python " + "C:/Users/626ca/PycharmProjects/tubedoeloader/download.py "
-                                    + url);
-                            System.out.println("now downloading...");
-                            p.waitFor();
-                            System.out.println("download completed");
-
-                            path = getPath(url);
-                            System.out.println(path);
-                            String command = "ffmpeg -i \"" + path + "\" \"" + path.split("\\.")[0] + ".mp3\"";
-                            Process p2 = runtime.exec(command);
-                            p2.waitFor();
-
-                            AudioClip audioClip = new AudioClip(new File(path).toURI().toString());
-                            audioClip.setCycleCount(1);
-                            audioClip.play();
-                            Thread.sleep(3000);
-                        }
-                    } catch (IOException ex) {
-                        ex.printStackTrace();
+                        ListenClient(ss_server.accept());
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
-                    //送信用の文字を送信
-                    writer.println("Play \t" + url);
-                }
+                }).run();
             }
+
 
         } catch (Exception err) {
             err.printStackTrace();
-        } finally {
-            try {
-                if (reader != null) {
-                    reader.close();
-                }
-                if (writer != null) {
-                    writer.close();
-                }
-                if (socket != null) {
-                    socket.close();
-                }
-                if (ss_server != null) {
-                    ss_server.close();
-                }
-            } catch (IOException ioe) {
-                ioe.printStackTrace();
-            }
         }
     }
 
@@ -132,11 +62,82 @@ class TCP_server {
         }
         return null;
     }
+
+    private void ListenClient(Socket socket) throws IOException {
+        //クライアントからの受取用
+        BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        //サーバーからクライアントへの送信用
+        PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
+
+        String line = null;
+        int num;
+        while (true) {
+            line = reader.readLine();
+            if (line.equals("/bye")) {
+                break;
+            }
+
+            if (line.startsWith("/play")) {
+                String url = line.split(" ")[1];
+                System.out.println(url);
+
+                if (!music_queue.offer(url)) {
+                    writer.println("曲が満杯です。");
+                }
+
+                //送信用の文字を送信
+                writer.println("Play \t" + url);
+            }
+        }
+    }
+
+    private void PlayMusic_PyWrapper(String path) throws IOException, InterruptedException {
+        Runtime runtime = Runtime.getRuntime();
+        Process p = runtime.exec("python C:/Users/626ca/PycharmProjects/music_player/play_music.py " + path);
+        p.waitFor();
+    }
+
+    private void PlayMusic_Loop(){
+        while (true){
+            try {
+                String url = music_queue.take();
+
+                if (!Files.exists(Paths.get(links))) {
+                    Files.createFile(Paths.get(links));
+                }
+
+                String path = getPath(url);
+
+                if (path != null) {
+                    //play music
+                    PlayMusic_PyWrapper(path.split("\\.")[0] + ".mp3");
+                } else {
+                    //download music
+                    Runtime runtime = Runtime.getRuntime();
+                    Process p = runtime.exec("python " + "C:/Users/626ca/PycharmProjects/tubedoeloader/download.py "
+                            + url);
+                    System.out.println("now downloading...");
+                    p.waitFor();
+                    System.out.println("download completed");
+
+                    path = getPath(url);
+                    System.out.println(path);
+                    String command = "ffmpeg -i \"" + path + "\" \"" + path.split("\\.")[0] + ".mp3\"";
+                    Process p2 = runtime.exec(command);
+                    p2.waitFor();
+
+                    PlayMusic_PyWrapper(path.split("\\.")[0] + ".mp3");
+                }
+            } catch (IOException | InterruptedException ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
 }
 
 public class server {
     public static void main(String[] args) {
-        TCP_server ts1 = new TCP_server();
+        MusicPlayer ts1 = new MusicPlayer();
         ts1.RunServer();
     }
 }
