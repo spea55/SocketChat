@@ -8,20 +8,21 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 class MusicPlayer {
 
     private String links = "C:/Users/626ca/IdeaProjects/SocketChat/src/spea55/links.txt";
-    private BlockingQueue<String> music_queue;
+    private ArrayBlockingQueue<String> music_queue = new ArrayBlockingQueue<>(64);
 
     void RunServer() {
 
         final int PORT = 10000;
         ServerSocket ss_server;
-        
+
         try {
-            new Thread(this::PlayMusic_Loop).run();
+            new Thread(this::PlayMusic_Loop).start();
 
             ss_server = new ServerSocket();
             ss_server.bind(new InetSocketAddress("localhost", PORT));
@@ -29,13 +30,14 @@ class MusicPlayer {
             System.out.println("クライアントからの入力待ち状態");
             //クライアントからの要求を待ち続ける
             while (true){
+                Socket socket = ss_server.accept();
                 new Thread(() -> {
                     try {
-                        ListenClient(ss_server.accept());
+                        ListenClient(socket);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                }).run();
+                }).start();
             }
 
 
@@ -88,13 +90,16 @@ class MusicPlayer {
                 //送信用の文字を送信
                 writer.println("Play \t" + url);
             }
+
+
         }
     }
 
     private void PlayMusic_PyWrapper(String path) throws IOException, InterruptedException {
-        Runtime runtime = Runtime.getRuntime();
-        Process p = runtime.exec("python C:/Users/626ca/PycharmProjects/music_player/play_music.py " + path);
-        p.waitFor();
+//        Runtime runtime = Runtime.gttetRuntime();
+//        Process p = runtime.exec("python C:/Users/626ca/PycharmProjects/music_player/play_music.py " + path);
+//        p.waitFor();
+        System.out.println("Play music " + path);
     }
 
     private void PlayMusic_Loop(){
