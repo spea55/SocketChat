@@ -30,22 +30,17 @@ class TCP_client{
              //無限ループ　byeの入力でループを抜ける
              String line = null;
              while(true) {
-                 System.out.println("----------------------");
-                 System.out.println("偶数を入力してください");
-                 System.out.println("----------------------");
-
                  line = csInput.readLine();
 
-                 //送信用の文字を送信
                  writer.println(line);
 
                  //byeの入力でループを抜ける
-                 if (line.equals("bye")) {
+                 if (line.equals("/bye")) {
                      break;
                  }
 
                  //サーバ側からの受取の結果を表示
-                 System.out.println("サーバーからの回答：" + reader.readLine());
+                 System.out.println(reader.readLine());
              }
          } catch(Exception e){
              e.printStackTrace();
