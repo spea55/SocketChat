@@ -96,10 +96,10 @@ class MusicPlayer {
     }
 
     private void PlayMusic_PyWrapper(String path) throws IOException, InterruptedException {
-//        Runtime runtime = Runtime.gttetRuntime();
-//        Process p = runtime.exec("python C:/Users/626ca/PycharmProjects/music_player/play_music.py " + path);
-//        p.waitFor();
-        System.out.println("Play music " + path);
+        Runtime runtime = Runtime.getRuntime();
+        Process p = runtime.exec("python C:/Users/626ca/PycharmProjects/music_player/play_music.py " + path);
+        p.waitFor();
+//        System.out.println("Play music " + path);
     }
 
     private void PlayMusic_Loop(){
