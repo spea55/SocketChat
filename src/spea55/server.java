@@ -5,6 +5,7 @@ import java.net.Socket;
 import java.net.ServerSocket;
 import java.net.InetSocketAddress;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
@@ -98,6 +99,12 @@ class MusicPlayer {
     private void PlayMusic_PyWrapper(String path) throws IOException, InterruptedException {
         Runtime runtime = Runtime.getRuntime();
         Process p = runtime.exec("python C:/Users/626ca/PycharmProjects/music_player/play_music.py " + path);
+        InputStream out = p.getInputStream(), err = p.getErrorStream();
+        byte[] tmp = new byte[1024];
+        out.read(tmp);
+        System.out.println(new String(tmp, StandardCharsets.UTF_8));
+        err.read(tmp);
+        System.out.println(new String(tmp, StandardCharsets.UTF_8));
         p.waitFor();
 //        System.out.println("Play music " + path);
     }
