@@ -14,9 +14,7 @@ class TCP_client{
          PrintWriter writer = null;
          Socket socket = null;
          try{
-             socket = new Socket("localhost", PORT);
-
-
+             socket = new Socket("192.168.11.3", PORT);
 
              //サーバ側からの受取
              reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));

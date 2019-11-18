@@ -1,16 +1,17 @@
 package spea55;
 
-import java.io.*;
-import java.net.Socket;
-import java.net.ServerSocket;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.InetSocketAddress;
-import java.nio.charset.Charset;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 
 class MusicPlayer {
 
@@ -26,7 +27,7 @@ class MusicPlayer {
             new Thread(this::PlayMusic_Loop).start();
 
             ss_server = new ServerSocket();
-            ss_server.bind(new InetSocketAddress("localhost", PORT));
+            ss_server.bind(new InetSocketAddress("192.168.11.3", PORT));
 
             System.out.println("クライアントからの入力待ち状態");
             //クライアントからの要求を待ち続ける
@@ -35,7 +36,7 @@ class MusicPlayer {
                 new Thread(() -> {
                     try {
                         ListenClient(socket);
-                    } catch (IOException e) {
+                    } catch (IOException | InterruptedException e) {
                         e.printStackTrace();
                     }
                 }).start();
@@ -49,8 +50,8 @@ class MusicPlayer {
 
     private String getPath(String url) {
         try {
-            List<String> lines = Files.readAllLines(Paths.get(links), Charset.forName("UTF-8"));
-            String path = null;
+            List<String> lines = Files.readAllLines(Paths.get(links), StandardCharsets.UTF_8);
+            String path;
             for (String s : lines) {
                String tmp =s.split(",")[0];
                 if (tmp.equals(url)) {
@@ -66,16 +67,16 @@ class MusicPlayer {
         return null;
     }
 
-    private void ListenClient(Socket socket) throws IOException {
+    private void ListenClient(Socket socket) throws IOException, InterruptedException {
         //クライアントからの受取用
         BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         //サーバーからクライアントへの送信用
         PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
 
-        String line = null;
-        int num;
+        String line;
         while (true) {
             line = reader.readLine();
+            System.out.println(line);
             if (line.equals("/bye")) {
                 break;
             }
@@ -84,45 +85,12 @@ class MusicPlayer {
                 String url = line.split(" ")[1];
                 System.out.println(url);
 
-                if (!music_queue.offer(url)) {
-                    writer.println("曲が満杯です。");
-                }
-
-                //送信用の文字を送信
-                writer.println("Play \t" + url);
-            }
-
-
-        }
-    }
-
-    private void PlayMusic_PyWrapper(String path) throws IOException, InterruptedException {
-        Runtime runtime = Runtime.getRuntime();
-        Process p = runtime.exec("python C:/Users/626ca/PycharmProjects/music_player/play_music.py " + path);
-        InputStream out = p.getInputStream(), err = p.getErrorStream();
-        byte[] tmp = new byte[1024];
-        out.read(tmp);
-        System.out.println(new String(tmp, StandardCharsets.UTF_8));
-        err.read(tmp);
-        System.out.println(new String(tmp, StandardCharsets.UTF_8));
-        p.waitFor();
-//        System.out.println("Play music " + path);
-    }
-
-    private void PlayMusic_Loop(){
-        while (true){
-            try {
-                String url = music_queue.take();
-
-                if (!Files.exists(Paths.get(links))) {
-                    Files.createFile(Paths.get(links));
-                }
-
                 String path = getPath(url);
-
                 if (path != null) {
                     //play music
-                    PlayMusic_PyWrapper(path.split("\\.")[0] + ".mp3");
+                    if (!music_queue.offer(path.split("\\.")[0] + ".mp3"))
+                        writer.write("Queue is full.");
+                    else writer.write("Added to Queue.");
                 } else {
                     //download music
                     Runtime runtime = Runtime.getRuntime();
@@ -134,12 +102,39 @@ class MusicPlayer {
 
                     path = getPath(url);
                     System.out.println(path);
+                    assert path != null;
                     String command = "ffmpeg -i \"" + path + "\" \"" + path.split("\\.")[0] + ".mp3\"";
                     Process p2 = runtime.exec(command);
                     p2.waitFor();
 
-                    PlayMusic_PyWrapper(path.split("\\.")[0] + ".mp3");
+                    if (!music_queue.offer(path.split("\\.")[0] + ".mp3"))
+                        writer.write("Queue is full.");
+                    else writer.write("Added to Queue.");
                 }
+            }
+
+
+        }
+    }
+
+    private void PlayMusic_PyWrapper(String path) throws IOException, InterruptedException {
+        Runtime runtime = Runtime.getRuntime();
+        Process p = runtime.exec("python C:/Users/626ca/PycharmProjects/music_player/play_music.py " + path);
+        p.waitFor();
+//        System.out.println("Play music " + path);
+    }
+
+    private void PlayMusic_Loop(){
+        while (true){
+            try {
+                String path = music_queue.take();
+
+                if (!Files.exists(Paths.get(links))) {
+                    Files.createFile(Paths.get(links));
+                }
+
+                PlayMusic_PyWrapper(path.split("\\.")[0] + ".mp3");
+
             } catch (IOException | InterruptedException ex) {
                 ex.printStackTrace();
             }
