@@ -8,13 +8,13 @@ import java.net.Socket;
 
 class TCP_client{
      void RunClient(){
-         final int PORT = 10000;
+         final int PORT = 28923;
          BufferedReader csInput = null;
          BufferedReader reader = null;
          PrintWriter writer = null;
          Socket socket = null;
          try{
-             socket = new Socket("192.168.11.3", PORT);
+             socket = new Socket("localhost", PORT);
 
              //サーバ側からの受取
              reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
