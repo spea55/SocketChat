@@ -1,9 +1,6 @@
 package spea55;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -69,19 +66,22 @@ class MusicPlayer {
 
     private void ListenClient(Socket socket) throws IOException, InterruptedException {
         //クライアントからの受取用
-        BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        DataInputStream reader = new DataInputStream(socket.getInputStream());
         //サーバーからクライアントへの送信用
-        PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
+        DataOutputStream writer = new DataOutputStream(socket.getOutputStream());
 
         String line;
         while (true) {
-            line = reader.readLine();
+            line = reader.readUTF();
             System.out.println(line);
             if (line.equals("/bye")) {
                 break;
             }
 
             if (line.startsWith("/play")) {
+                if (!Files.exists(Paths.get(links))) {
+                    Files.createFile(Paths.get(links));
+                }
                 String url = line.split(" ")[1];
                 System.out.println(url);
 
@@ -89,8 +89,8 @@ class MusicPlayer {
                 if (path != null) {
                     //play music
                     if (!music_queue.offer(path.split("\\.")[0] + ".mp3"))
-                        writer.write("Queue is full.");
-                    else writer.write("Added to Queue.");
+                        writer.writeUTF("Queue is full.");
+                    else writer.writeUTF("Added to Queue.");
                 } else {
                     //download music
                     Runtime runtime = Runtime.getRuntime();
@@ -98,18 +98,19 @@ class MusicPlayer {
                             + url);
                     System.out.println("now downloading...");
                     p.waitFor();
+                    Thread.sleep(500);
                     System.out.println("download completed");
 
                     path = getPath(url);
-                    System.out.println(path);
+                    System.out.println("encoding " + path);
                     assert path != null;
                     String command = "ffmpeg -i \"" + path + "\" \"" + path.split("\\.")[0] + ".mp3\"";
                     Process p2 = runtime.exec(command);
                     p2.waitFor();
 
                     if (!music_queue.offer(path.split("\\.")[0] + ".mp3"))
-                        writer.write("Queue is full.");
-                    else writer.write("Added to Queue.");
+                        writer.writeUTF("Queue is full.");
+                    else writer.writeUTF("Added to Queue.");
                 }
             }
 
@@ -128,11 +129,7 @@ class MusicPlayer {
         while (true){
             try {
                 String path = music_queue.take();
-
-                if (!Files.exists(Paths.get(links))) {
-                    Files.createFile(Paths.get(links));
-                }
-
+                System.out.println("Play " + path.split("\\.")[0]);
                 PlayMusic_PyWrapper(path.split("\\.")[0] + ".mp3");
 
             } catch (IOException | InterruptedException ex) {
